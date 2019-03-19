@@ -21,6 +21,7 @@ private:
   QWidget* createNetworkStatusGroupBox();
   QWidget* createQrCodeGroupBox();
   QWidget* createDppStatusGroupBox();
+  QWidget* createWpaSupplicantStatus();
 
   void checkForInterfaceChanges();
 

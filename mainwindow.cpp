@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QComboBox>
+#include <QDateTime>
 #include <QLabel>
 #include <QNetworkInterface>
 #include <QHBoxLayout>
@@ -41,7 +42,22 @@ namespace
     tokens = out2.split("\n");
 
     QString uri = tokens[1].remove('"');
+    qInfo() << "dpp_uri:" << uri;
     return uri;
+  }
+
+  QString
+  getWpaStatus()
+  {
+    QString status = QString("sudo %1 status")
+      .arg(wpa_cli);
+
+    QProcess p;
+    p.start(status);
+    p.waitForFinished();
+
+    QString s = p.readAllStandardOutput();
+    return s;
   }
 
   void
@@ -51,18 +67,27 @@ namespace
       .arg(dppUri)
       .arg(path);
 
+    qInfo() << "exec:" << qrencode;
+
     QProcess p;
     p.start(qrencode);
     p.waitForFinished();
+  }
+
+  void
+  startDppListen()
+  {
+    qInfo() << "TODO startDppListen";
   }
 }
 
 MainWindow::MainWindow()
 {
   QGridLayout* mainLayout = new QGridLayout();
-  mainLayout->addWidget(createNetworkStatusGroupBox(), 0, 0, 2, 1);
+  mainLayout->addWidget(createNetworkStatusGroupBox(), 0, 0, 3, 1);
   mainLayout->addWidget(createQrCodeGroupBox(), 0, 1, 1, 1);
   mainLayout->addWidget(createDppStatusGroupBox(), 1, 1, 1, 1);
+  mainLayout->addWidget(createWpaSupplicantStatus(), 2, 1, 1, 1);
 
   setLayout(mainLayout);
   setWindowTitle("EasyConnect Demo");
@@ -83,6 +108,29 @@ MainWindow::createDppStatusGroupBox()
   QGroupBox* groupBox = new QGroupBox("EasyConnect Status");
 
   // TODO: 
+  return groupBox;
+}
+
+QWidget*
+MainWindow::createWpaSupplicantStatus()
+{
+  QGroupBox* groupBox = new QGroupBox("WPA Supplicant Status");
+  QVBoxLayout* layout = new QVBoxLayout();
+
+  QLabel* label = new QLabel();
+  QTimer* timer = new QTimer(this);
+  connect(timer, &QTimer::timeout, this, [label]()
+  {
+    QDateTime now = QDateTime::currentDateTime();
+    QString message = QString("%1\n%2")
+      .arg(now.toString())
+      .arg(getWpaStatus());
+
+    label->setText(message);
+  });
+  layout->addWidget(label);
+  groupBox->setLayout(layout);
+  timer->start(1000);
   return groupBox;
 }
 
@@ -122,6 +170,13 @@ MainWindow::createQrCodeGroupBox()
   });
   gridLayout->addWidget(button, 1, 0, 1, 1);
 
+  QPushButton* listenButton = new QPushButton("Start DPP Listen");
+  connect(listenButton, &QPushButton::released, this, [this]()
+  {
+    startDppListen();
+  });
+  gridLayout->addWidget(listenButton, 1, 1, 1, 1);
+
   QPixmap image("qrcode.png");
   qrCode->setPixmap(image);
   gridLayout->addWidget(qrCode, 2, 0, 2, 2);
@@ -139,11 +194,13 @@ MainWindow::createNetworkStatusGroupBox()
 
   for (QNetworkInterface const& nic : QNetworkInterface::allInterfaces())
   {
-    int row = 0;
-
-    QGridLayout* gridLayout = new QGridLayout();
     QString name = nic.name();
+    if (name == "lo")
+      continue;
+
+    int row = 0;
     int index = nic.index();
+    QGridLayout* gridLayout = new QGridLayout();
 
     gridLayout->addWidget(new QLabel("Name:"), row, 0, 1, 1);
     gridLayout->addWidget(new QLabel(nic.name()), row, 1, 1, 1);
@@ -225,9 +282,6 @@ MainWindow::checkForInterfaceChanges()
 
     // only handles cases where there was no address when started, and now there is
     if (addresses.size() > 0)
-    {
-      qInfo() << "changed";
       emit networkAddressChanged(index);
-    }
   }
 }
