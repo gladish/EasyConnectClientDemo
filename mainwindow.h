@@ -20,6 +20,7 @@ signals:
 private:
   QWidget* createNetworkStatusGroupBox();
   QWidget* createQrCodeGroupBox();
+  QWidget* createDppStatusGroupBox();
 
   void checkForInterfaceChanges();
 
