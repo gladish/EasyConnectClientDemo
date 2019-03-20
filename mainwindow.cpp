@@ -12,11 +12,13 @@
 
 namespace
 {
-  QString const wpa_cli = "/home/pi/work/hostap/wpa_supplicant/wpa_cli";
+  QString const kWpaCliCommand = "/home/pi/work/hostap/wpa_supplicant/wpa_cli";
+  QString const kQrCodePath = "/tmp/qrcode.png";
+
   QString wpaCliGenerateUri(QString const& mac, QString const& channel)
   {
     QString bootstrapGen = QString("sudo %1 dpp_bootstrap_gen type=qrcode chan=81/%2 mac=%3")
-      .arg(wpa_cli)
+      .arg(kWpaCliCommand)
       .arg(channel)
       .arg(mac);
 
@@ -30,7 +32,7 @@ namespace
     QString index = tokens[1];
 
     QString bootstrapGetUri = QString("sudo %1 dpp_bootstrap_get_uri %2")
-      .arg(wpa_cli)
+      .arg(kWpaCliCommand)
       .arg(index);
 
     qInfo() << "exec:" << bootstrapGetUri;
@@ -50,7 +52,7 @@ namespace
   getWpaStatus()
   {
     QString status = QString("sudo %1 status")
-      .arg(wpa_cli);
+      .arg(kWpaCliCommand);
 
     QProcess p;
     p.start(status);
@@ -162,7 +164,7 @@ MainWindow::createQrCodeGroupBox()
     QString mac = QNetworkInterface::interfaceFromName(wirelessInterfaceName).hardwareAddress();
     QString dppUri = wpaCliGenerateUri(mac, wifiChannel);
 
-    QString pathToPixmap("/tmp/qrcode.png");
+    QString pathToPixmap(kQrCodePath);
     regenerateQrCodePixmap(dppUri, pathToPixmap);
 
     QPixmap image(pathToPixmap);
@@ -177,7 +179,7 @@ MainWindow::createQrCodeGroupBox()
   });
   gridLayout->addWidget(listenButton, 1, 1, 1, 1);
 
-  QPixmap image("qrcode.png");
+  QPixmap image(kQrCodePath);
   qrCode->setPixmap(image);
   gridLayout->addWidget(qrCode, 2, 0, 2, 2);
 
