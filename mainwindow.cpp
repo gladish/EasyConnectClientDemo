@@ -74,12 +74,31 @@ namespace
     QProcess p;
     p.start(qrencode);
     p.waitForFinished();
+    qInfo() << "Command to be executed in AP: " << "sudo ./hostapd_cli dpp_qr_code " << dppUri;
   }
 
   void
-  startDppListen()
+  startDppListen(QString const& wifiChannel)
   {
-    qInfo() << "TODO startDppListen";
+    int freq [14] = {2412, 2417, 2422, 2427, 2432, 2437, 2442, 2447, 2452, 2457, 2462,
+    2467, 2472, 2484};
+    int wChannel = wifiChannel.toInt();
+    if ((wChannel < 1) || (wChannel > 14))
+    {
+      qInfo() << "Invalid channel";
+      return;
+    }
+
+    qInfo() << "Executing  startDppListen " << wChannel;
+    QString qdpplisten = QString("sudo %1 dpp_listen %2")
+      .arg(kWpaCliCommand)
+      .arg(freq[wChannel-1]);
+
+    qInfo() << "exec:" << qdpplisten;
+
+    QProcess p;
+    p.start(qdpplisten);
+    p.waitForFinished();
   }
 }
 
@@ -173,9 +192,10 @@ MainWindow::createQrCodeGroupBox()
   gridLayout->addWidget(button, 1, 0, 1, 1);
 
   QPushButton* listenButton = new QPushButton("Start DPP Listen");
-  connect(listenButton, &QPushButton::released, this, [this]()
+  connect(listenButton, &QPushButton::released, this, [this, channel]()
   {
-    startDppListen();
+    qInfo() << "wifiChannel: " << channel->currentText();
+    startDppListen(channel->currentText());
   });
   gridLayout->addWidget(listenButton, 1, 1, 1, 1);
 
@@ -206,6 +226,10 @@ MainWindow::createNetworkStatusGroupBox()
 
     gridLayout->addWidget(new QLabel("Name:"), row, 0, 1, 1);
     gridLayout->addWidget(new QLabel(nic.name()), row, 1, 1, 1);
+    row++;
+
+    gridLayout->addWidget(new QLabel("MAC:"), row, 0, 1, 1);
+    gridLayout->addWidget(new QLabel(nic.hardwareAddress()), row, 1, 1, 1);
     row++;
 
     bool hasAddress = false;
